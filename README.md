@@ -1,6 +1,6 @@
 # Amazon-S3-CFS-Provider
 
-IMPORTANT:  Currently this provider only supports buckets in the east region which as of this publication is the US Standard bucket.
+IMPORTANT:  Currently this provider only supports buckets in the east region which as of this publication is the US Standard region.
 
 ##Installation
 1. From the pacakage folder, copy the Telligent.Evolution.Extensions.AmazonS3.dll to you community /bin directory
