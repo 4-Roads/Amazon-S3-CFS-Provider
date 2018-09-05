@@ -9,33 +9,16 @@ namespace Telligent.Extensions.AmazonS3
 {
     public class ObjectMetaDataResponse : Response
     {
-        SortedList _metaData;
-        public SortedList MetaData
-        {
-            get { return _metaData; }
-        }
+        public SortedList MetaData { get; private set; }
 
-        DateTime _lastModified;
-        public DateTime LastModified
-        {
-            get { return _lastModified; }
-        }
+        public DateTime LastModified { get; private set; }
 
-        string _contentType;
-        public string ContentType
-        {
-            get { return _contentType; }
-        }
+        public string ContentType { get; private set; }
 
-        long _contentLength;
-        public long ContentLength
-        {
-            get { return _contentLength; }
-        }
+        public long ContentLength { get; private set; }
 
 
-        public ObjectMetaDataResponse(WebRequest request)
-            : base(request)
+        public ObjectMetaDataResponse(WebRequest request) : base(request)
         {
         }
 
@@ -43,17 +26,17 @@ namespace Telligent.Extensions.AmazonS3
         {
             base.ReadResponse(response, request);
 
-            _lastModified = DateTime.Parse(response.Headers["Last-Modified"], System.Globalization.CultureInfo.InvariantCulture.DateTimeFormat);
-            _contentType = response.ContentType;
-            _contentLength = response.ContentLength;
+            LastModified = DateTime.Parse(response.Headers["Last-Modified"], System.Globalization.CultureInfo.InvariantCulture.DateTimeFormat);
+            ContentType = response.ContentType;
+            ContentLength = response.ContentLength;
 
-            _metaData = new SortedList();
+            MetaData = new SortedList();
             foreach (string hKey in response.Headers.Keys)
             {
                 if (hKey == null) continue;
                 if (hKey.StartsWith(Utils.METADATA_PREFIX))
                 {
-                    _metaData[hKey.Substring(Utils.METADATA_PREFIX.Length)] = response.Headers[hKey];
+                    MetaData[hKey.Substring(Utils.METADATA_PREFIX.Length)] = response.Headers[hKey];
                 }
             }
         }

@@ -17,32 +17,9 @@ namespace Telligent.Extensions.AmazonS3
 {
     public class Response
     {
-        HttpStatusCode _status;
-        public HttpStatusCode Status
-        {
-            get
-            {
-                return _status;
-            }
-        }
-
-        string _xAmzId;
-        public string XAmzId
-        {
-            get
-            {
-                return _xAmzId;
-            }
-        }
-
-        string _xAmzRequestId;
-        public string XAmzRequestId
-        {
-            get
-            {
-                return _xAmzRequestId;
-            }
-        }
+        public HttpStatusCode Status { get; private set; }
+        public string XAmzId { get; private set; }
+        public string XAmzRequestId { get; private set; }
 
         public Response(WebRequest request)
         {
@@ -58,7 +35,7 @@ namespace Telligent.Extensions.AmazonS3
             {
                 if (ex.Response != null)
                 {
-                    string msg = Utils.slurpInputStreamAsString(ex.Response.GetResponseStream());
+                    string msg = Utils.SlurpInputStreamAsString(ex.Response.GetResponseStream());
                     throw new WebException(msg, ex, ex.Status, ex.Response);
                 }
                 else
@@ -68,9 +45,9 @@ namespace Telligent.Extensions.AmazonS3
 
         protected virtual void ReadResponse(WebResponse response, WebRequest request)
         {
-            this._status = ((HttpWebResponse)response).StatusCode;
-            this._xAmzId = response.Headers.Get("x-amz-id-2");
-            this._xAmzRequestId = response.Headers.Get("x-amz-request-id");
+            this.Status = ((HttpWebResponse)response).StatusCode;
+            this.XAmzId = response.Headers.Get("x-amz-id-2");
+            this.XAmzRequestId = response.Headers.Get("x-amz-request-id");
         }
     }
 }

@@ -33,46 +33,16 @@ namespace Telligent.Extensions.AmazonS3
         public static readonly string METADATA_PREFIX = "x-amz-meta-";
         public static readonly string AMAZON_HEADER_PREFIX = "x-amz-";
         public static readonly string ALTERNATIVE_DATE_HEADER = "x-amz-date";
+        public static string Host { get; set; } = "s3.amazonaws.com";
+        public static int SecurePort { get; set; } = 443;
+        public static int InsecurePort { get; set; } = 80;
 
-        private static string host = "s3.amazonaws.com";
-        public static string Host {
-            get {
-                return host;
-            }
-            set {
-                host = value;
-            }
-        }
+        internal static string MakeCanonicalString(string bucket, string key, WebRequest request) => MakeCanonicalString(bucket, key, new SortedList(), request);
 
-        private static int securePort = 443;
-        public static int SecurePort {
-            get {
-                return securePort;
-            }
-            set {
-                securePort = value;
-            }
-        }
-
-        private static int insecurePort = 80;
-        public static int InsecurePort {
-            get {
-                return insecurePort;
-            }
-            set {
-                insecurePort = value;
-            }
-        }
-
-        internal static string makeCanonicalString(string bucket, string key, WebRequest request)
-        {
-            return makeCanonicalString(bucket, key, new SortedList(), request);
-        }
-
-        internal static string makeCanonicalString( string bucket, string key, SortedList query, WebRequest request )
+        internal static string MakeCanonicalString(string bucket, string key, SortedList query, WebRequest request)
         {
             SortedList headers = new SortedList();
-            foreach ( string header in request.Headers )
+            foreach (string header in request.Headers)
             {
                 headers.Add(header, request.Headers[header]);
             }
@@ -80,15 +50,14 @@ namespace Telligent.Extensions.AmazonS3
             {
                 headers.Add("Content-Type", request.ContentType);
             }
-            return makeCanonicalString(request.Method, bucket, key, query, headers, null);
+            return MakeCanonicalString(request.Method, bucket, key, query, headers, null);
         }
 
-        internal static string makeCanonicalString( string verb, string bucketName, string key, SortedList queryParams,
-                                                  SortedList headers, string expires )
+        internal static string MakeCanonicalString(string verb, string bucketName, string key, SortedList queryParams, SortedList headers, string expires)
         {
             StringBuilder buf = new StringBuilder();
-            buf.Append( verb );
-            buf.Append( "\n" );
+            buf.Append(verb);
+            buf.Append("\n");
 
             SortedList interestingHeaders = new SortedList();
             if (headers != null)
@@ -105,33 +74,33 @@ namespace Telligent.Extensions.AmazonS3
                     }
                 }
             }
-            if ( interestingHeaders[ ALTERNATIVE_DATE_HEADER ] != null )
+            if (interestingHeaders[ALTERNATIVE_DATE_HEADER] != null)
             {
-                interestingHeaders.Add( "date", "" );
+                interestingHeaders.Add("date", "");
             }
 
             // if the expires is non-null, use that for the date field.  this
             // trumps the x-amz-date behavior.
-            if ( expires != null )
+            if (expires != null)
             {
-                interestingHeaders.Add( "date", expires );
+                interestingHeaders.Add("date", expires);
             }
 
             // these headers require that we still put a new line after them,
             // even if they don't exist.
             {
-                string [] newlineHeaders = { "content-type", "content-md5" };
-                foreach ( string header in newlineHeaders )
+                string[] newlineHeaders = { "content-type", "content-md5" };
+                foreach (string header in newlineHeaders)
                 {
                     if (interestingHeaders.IndexOfKey(header) == -1)
                     {
-                        interestingHeaders.Add( header, "" );
+                        interestingHeaders.Add(header, "");
                     }
                 }
             }
 
             // Finally, add all the interesting headers (i.e.: all that startwith x-amz- ;-))
-            foreach ( string header in interestingHeaders.Keys )
+            foreach (string header in interestingHeaders.Keys)
             {
                 if (header.StartsWith(AMAZON_HEADER_PREFIX))
                 {
@@ -141,21 +110,21 @@ namespace Telligent.Extensions.AmazonS3
                 {
                     buf.Append(interestingHeaders[header]);
                 }
-                buf.Append( "\n" );
+                buf.Append("\n");
             }
 
             // Build the path using the bucket and key
-            buf.Append( "/" );
-            if ( bucketName != null && !bucketName.Equals( "" ) )
+            buf.Append("/");
+            if (bucketName != null && !bucketName.Equals(""))
             {
                 buf.Append(bucketName);
-                buf.Append( "/" );
+                buf.Append("/");
             }
 
             // Append the key (it may be an empty string)
-            if ( key != null && key.Length != 0 )
+            if (key != null && key.Length != 0)
             {
-                buf.Append( key );
+                buf.Append(key);
             }
 
             // if there is an acl, logging, or torrent paramter, add them to the string.
@@ -178,16 +147,13 @@ namespace Telligent.Extensions.AmazonS3
             return buf.ToString();
         }
 
-        internal static string encode( string awsSecretAccessKey, string canonicalString, bool urlEncode )
+        internal static string Encode(string awsSecretAccessKey, string canonicalString, bool urlEncode)
         {
             Encoding ae = new UTF8Encoding();
-            HMACSHA1 signature = new HMACSHA1( ae.GetBytes( awsSecretAccessKey ) );
-            string b64 = Convert.ToBase64String(
-                                        signature.ComputeHash( ae.GetBytes(
-                                                        canonicalString.ToCharArray() ) )
-                                               );
+            HMACSHA1 signature = new HMACSHA1(ae.GetBytes(awsSecretAccessKey));
+            string b64 = Convert.ToBase64String(signature.ComputeHash(ae.GetBytes(canonicalString.ToCharArray())));
 
-            if ( urlEncode )
+            if (urlEncode)
             {
                 return HttpUtility.UrlEncode(b64);
             }
@@ -197,7 +163,7 @@ namespace Telligent.Extensions.AmazonS3
             }
         }
 
-        internal static byte[] slurpInputStream(Stream stream)
+        internal static byte[] SlurpInputStream(Stream stream)
         {
             using (MemoryStream ms = new MemoryStream())
             {
@@ -214,13 +180,13 @@ namespace Telligent.Extensions.AmazonS3
             }
         }
 
-        internal static string slurpInputStreamAsString(Stream stream)
+        internal static string SlurpInputStreamAsString(Stream stream)
         {
             UTF8Encoding encoding = new UTF8Encoding();
-            return encoding.GetString( slurpInputStream( stream ) );
+            return encoding.GetString(SlurpInputStream(stream));
         }
 
-        internal static string getXmlChildText(XmlNode data)
+        internal static string GetXmlChildText(XmlNode data)
         {
             StringBuilder builder = new StringBuilder();
             foreach (XmlNode node in data.ChildNodes)
@@ -234,67 +200,56 @@ namespace Telligent.Extensions.AmazonS3
             return builder.ToString();
         }
 
-        internal static DateTime parseDate(string dateStr)
-        {
-            return DateTime.Parse(dateStr);
-        }
+        internal static DateTime ParseDate(string dateStr) => DateTime.Parse(dateStr);
 
-        public static string getHttpDate()
-        {
+        public static string GetHttpDate() =>
             // Setting the Culture will ensure we get a proper HTTP Date.
-            string date = System.DateTime.UtcNow.ToString( "ddd, dd MMM yyyy HH:mm:ss ", System.Globalization.CultureInfo.InvariantCulture ) + "GMT";
-            return date;
-        }
+            System.DateTime.UtcNow.ToString("ddd, dd MMM yyyy HH:mm:ss ", System.Globalization.CultureInfo.InvariantCulture) + "GMT";
 
-        internal static long currentTimeMillis()
-        {
-            return (long)( DateTime.UtcNow - new DateTime( 1970, 1, 1 ) ).TotalMilliseconds;
-        }
+        internal static long CurrentTimeMillis() => (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds;
 
         /// <summary>
         /// Calculates the endpoint based on the calling format.
         /// </summary>
-        internal static string buildUrlBase( string server, int port, string bucket, CallingFormat format )
+        internal static string BuildUrlBase(string server, int port, string bucket, CallingFormat format)
         {
             StringBuilder endpoint = new StringBuilder();
 
-            if ( format == CallingFormat.REGULAR )
+            if (format == CallingFormat.REGULAR)
             {
-                endpoint.Append( server );
-                endpoint.Append( ":" );
-                endpoint.Append( port );
-                if ( bucket != null && ! bucket.Equals( "" ) )
+                endpoint.Append(server);
+                endpoint.Append(":");
+                endpoint.Append(port);
+                if (bucket != null && !bucket.Equals(""))
                 {
-                    endpoint.Append( "/" );
-                    endpoint.Append( bucket );
+                    endpoint.Append("/");
+                    endpoint.Append(bucket);
                 }
             }
-            else if ( format == CallingFormat.SUBDOMAIN )
+            else if (format == CallingFormat.SUBDOMAIN)
             {
-                if ( bucket.Length != 0 ) {
-                    endpoint.Append( bucket );
-                    endpoint.Append( "." );
+                if (bucket.Length != 0)
+                {
+                    endpoint.Append(bucket);
+                    endpoint.Append(".");
                 }
-                endpoint.Append( server );
-                endpoint.Append( ":" );
-                endpoint.Append( port );
+                endpoint.Append(server);
+                endpoint.Append(":");
+                endpoint.Append(port);
             }
-            else if ( format == CallingFormat.VANITY )
+            else if (format == CallingFormat.VANITY)
             {
-                endpoint.Append( bucket );
-                endpoint.Append( ":" );
-                endpoint.Append( port );
+                endpoint.Append(bucket);
+                endpoint.Append(":");
+                endpoint.Append(port);
             }
-            endpoint.Append( "/" );
+            endpoint.Append("/");
             return endpoint.ToString();
         }
 
-        internal static SortedList queryForListOptions(string prefix, string marker, int maxKeys)
-        {
-            return queryForListOptions(prefix, marker, maxKeys, null);
-        }
+        internal static SortedList QueryForListOptions(string prefix, string marker, int maxKeys) => QueryForListOptions(prefix, marker, maxKeys, null);
 
-        internal static SortedList queryForListOptions(string prefix, string marker, int maxKeys, string delimiter)
+        internal static SortedList QueryForListOptions(string prefix, string marker, int maxKeys, string delimiter)
         {
             SortedList queryStrings = new SortedList();
             if (prefix != null) queryStrings.Add("prefix", HttpUtility.UrlEncode(prefix)); ;
@@ -304,7 +259,7 @@ namespace Telligent.Extensions.AmazonS3
             return queryStrings;
         }
 
-        internal static string convertQueryListToQueryString(SortedList query)
+        internal static string ConvertQueryListToQueryString(SortedList query)
         {
             StringBuilder queryString = new StringBuilder();
             bool firstParameter = true;

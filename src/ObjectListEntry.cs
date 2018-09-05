@@ -18,19 +18,8 @@ namespace Telligent.Extensions.AmazonS3
 {
     public class ObjectListEntry
     {
-        private string _key;
-        public string Key {
-            get {
-                return _key;
-            }
-        }
-
-        private DateTime _lastModified;
-        public DateTime LastModified {
-            get {
-                return _lastModified;
-            }
-        }
+        public string Key { get; }
+        public DateTime LastModified { get; }
 
         private long _contentLength;
         public long ContentLength {
@@ -46,15 +35,15 @@ namespace Telligent.Extensions.AmazonS3
                 switch (child.Name)
                 {
                     case "Key":
-                        _key = Utils.getXmlChildText(child);
+                        Key = Utils.GetXmlChildText(child);
                         break;
 
                     case "LastModified":
-                        _lastModified = Utils.parseDate(Utils.getXmlChildText(child));
+                        LastModified = Utils.ParseDate(Utils.GetXmlChildText(child));
                         break;
 
                     case "Size":
-                        _contentLength = long.Parse(Utils.getXmlChildText(child));
+                        _contentLength = long.Parse(Utils.GetXmlChildText(child));
                         break;
                 }
             }

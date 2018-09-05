@@ -54,7 +54,7 @@ namespace Telligent.Extensions.AmazonS3
             _awsAuthPublicKey = node.Attributes["awsAccessKeyId"].Value;
             _bucketName = node.Attributes["bucket"].Value;
             _isSecure = node.Attributes["secure"] != null ? node.Attributes["secure"].Value == "true" : true;
-            _s3domain = node.Attributes["domain"] != null ? node.Attributes["domain"].Value : null;
+            _s3domain = node.Attributes["domain"]?.Value;
 
             try
             {
@@ -199,10 +199,12 @@ namespace Telligent.Extensions.AmazonS3
                     EventExecutor.OnBeforeCreate(FileStoreKey, path, fileName);
             }
 
-			SortedList headers = new SortedList();
-			headers.Add("Content-Type", Telligent.Evolution.Configuration.MimeTypeConfiguration.GetMimeType(fileName));
+            SortedList headers = new SortedList
+            {
+                { "Content-Type", Telligent.Evolution.Configuration.MimeTypeConfiguration.GetMimeType(fileName) }
+            };
 
-			GetConnection().Put(this._bucketName, MakeKey(path, fileName), new SortedList(), contentStream, headers);
+            GetConnection().Put(this._bucketName, MakeKey(path, fileName), new SortedList(), contentStream, headers);
 
 			this.RemoveAmazonS3PathQueryResultsAndAmazonS3FileStorageFileFromCache(path, fileName);
 
@@ -529,49 +531,30 @@ namespace Telligent.Extensions.AmazonS3
 
         public AmazonS3FileStorageFile(string fileStoreKey, string path, string fileName, int contentLength)
         {
-            _contentLength = contentLength;
-            _fileName = fileName;
-            _path = path;
-            _fileStoreKey = fileStoreKey;
+            ContentLength = contentLength;
+            FileName = fileName;
+            Path = path;
+            FileStoreKey = fileStoreKey;
         }
 
         #endregion
-
         #region Private Data
-
-        int _contentLength;
-        string _fileName;
-        string _path;
-        string _fileStoreKey;
 
         #endregion
 
         #region ICentralizedFile Members
 
-        public int ContentLength
-        {
-            get { return _contentLength; }
-        }
+        public int ContentLength { get; }
 
-        public string FileName
-        {
-            get { return _fileName; }
-        }
+        public string FileName { get; }
 
-        public string Path
-        {
-            get { return _path; }
-        }
+        public string Path { get; }
 
-        public string FileStoreKey
-        {
-            get { return _fileStoreKey; }
-        }
+        public string FileStoreKey { get; }
 
         public Stream OpenReadStream()
         {
-            AmazonS3FileStorageProvider s3 = CentralizedFileStorage.GetFileStore(this.FileStoreKey) as AmazonS3FileStorageProvider;
-            if (s3 != null)
+            if (CentralizedFileStorage.GetFileStore(this.FileStoreKey) is AmazonS3FileStorageProvider s3)
                 return s3.GetContentStream(this.Path, this.FileName);
             else
                 return null;
@@ -579,8 +562,7 @@ namespace Telligent.Extensions.AmazonS3
 
         public string GetDownloadUrl()
         {
-            AmazonS3FileStorageProvider s3 = CentralizedFileStorage.GetFileStore(this.FileStoreKey) as AmazonS3FileStorageProvider;
-            if (s3 != null)
+            if (CentralizedFileStorage.GetFileStore(this.FileStoreKey) is AmazonS3FileStorageProvider s3)
                 return s3.GetDownloadUrl(this.Path, this.FileName);
             else
                 return string.Empty;
