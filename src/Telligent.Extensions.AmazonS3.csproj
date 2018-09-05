@@ -33,25 +33,30 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="CommunityServer.Ldap">
-      <HintPath>..\..\..\lib\Telligent\CommunityServer.Ldap.dll</HintPath>
+    <Reference Include="CommunityServer.Ldap, Version=0.1.12.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\lib\Telligent\CommunityServer.Ldap.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
     <Reference Include="System.Web" />
     <Reference Include="System.Xml" />
-    <Reference Include="Telligent.Caching">
-      <HintPath>..\..\..\lib\Telligent\Telligent.Caching.dll</HintPath>
+    <Reference Include="Telligent.Caching, Version=0.1.13.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\lib\Telligent\Telligent.Caching.dll</HintPath>
     </Reference>
-    <Reference Include="Telligent.Evolution.Platform">
-      <HintPath>..\..\..\lib\Telligent\Telligent.Evolution.Platform.dll</HintPath>
+    <Reference Include="Telligent.Evolution.Platform, Version=10.2.2.4296, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\lib\Telligent\Telligent.Evolution.Platform.dll</HintPath>
     </Reference>
-    <Reference Include="Telligent.Glow">
-      <HintPath>..\..\..\lib\Telligent\Telligent.Glow.dll</HintPath>
+    <Reference Include="Telligent.Glow, Version=0.1.91.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\lib\Telligent\Telligent.Glow.dll</HintPath>
     </Reference>
-    <Reference Include="Telligent.Jobs">
-      <HintPath>..\..\..\lib\Telligent\Telligent.Jobs.dll</HintPath>
+    <Reference Include="Telligent.Jobs, Version=1.2.4.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\lib\Telligent\Telligent.Jobs.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

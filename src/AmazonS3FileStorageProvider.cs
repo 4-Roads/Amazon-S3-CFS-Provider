@@ -17,8 +17,8 @@ using Telligent.Evolution.Components;
 using Telligent.Evolution.Extensibility.Caching.Version1;
 using Telligent.Evolution.Extensibility.Storage.Providers.Version1;
 using Telligent.Evolution.Extensibility.Storage.Version1;
-
-
+using Telligent.Evolution.Extensibility;
+using Telligent.Evolution.Extensibility.Api.Version1;
 
 namespace Telligent.Extensions.AmazonS3
 {
@@ -58,9 +58,16 @@ namespace Telligent.Extensions.AmazonS3
 
             try
             {
-                GetConnection().CreateBucket(_bucketName, new SortedList());
+                var connection = GetConnection();
+                if (!connection.BucketExists(_bucketName))
+                {
+                    connection.CreateBucket(_bucketName, new SortedList());
+                }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Apis.Get<IEventLog>().Write($"Error when creating an AmazonS3 Bucket - ex: {ex.ToString()}", new EventLogEntryWriteOptions() { EventType = "Error", Category = this.GetType().Name });
+            }
         }
 
 	

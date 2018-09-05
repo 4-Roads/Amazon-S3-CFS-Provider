@@ -15,6 +15,7 @@ using System.Text;
 using System.Web;
 using System.IO;
 using System.Collections.Specialized;
+using System.Collections.Generic;
 
 namespace Telligent.Extensions.AmazonS3
 {
@@ -54,7 +55,6 @@ namespace Telligent.Extensions.AmazonS3
             : this(awsAccessKeyId, awsSecretAccessKey, isSecure, server, isSecure ? Utils.SecurePort : Utils.InsecurePort, format)
         {
         }
-
         public Connection(string awsAccessKeyId, string awsSecretAccessKey, bool isSecure, string server)
             : this(awsAccessKeyId, awsSecretAccessKey, isSecure, server, isSecure ? Utils.SecurePort : Utils.InsecurePort, CallingFormat.REGULAR)
         {
@@ -86,6 +86,19 @@ namespace Telligent.Extensions.AmazonS3
             request.ContentLength = 0;
             request.GetRequestStream().Close();
             return new Response(request);
+        }
+
+        /// <summary>
+        /// Determines if a bucket exists.
+        /// </summary>
+        /// <param name="bucket">The name of the bucket to create</param>
+        internal bool BucketExists(string bucket)
+        {
+            var rq = MakeRequest("HEAD", bucket, String.Empty, new SortedList());
+            using (var rs = (HttpWebResponse)rq.GetResponse())
+            {
+                return rs.StatusCode != HttpStatusCode.NotFound;
+            }
         }
 
         /// <summary>
