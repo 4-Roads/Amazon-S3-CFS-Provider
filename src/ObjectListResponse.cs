@@ -19,107 +19,138 @@ namespace Telligent.Extensions.AmazonS3
 {
     public class ObjectListResponse : Response
     {
-        /// <summary>
-        /// The name of the bucket being listed.  Null if the request fails.
-        /// </summary>
-        public string Name { get; private set; }
-        /// <summary>
-        /// The prefix echoed back from the request.  Null if the request fails.
-        /// </summary>
-        public string Prefix { get; private set; }
-        /// <summary>
-        /// The marker echoed back from the request.  Null if the request fails.
-        /// </summary>
-        public string Marker { get; private set; }
-        /// <summary>
-        /// The delimiter echoed back from the request.  Null if not specified in
-        /// the request or it fails.
-        /// </summary>
-        public string Delimiter { get; private set; }
-        /// <summary>
-        /// The maxKeys echoed back from the request if specified.  0 if the request fails.
-        /// </summary>
-        public int MaxKeys { get; private set; }
-        /// <summary>
-        /// Indicates if there are more results to the list.  True if the current
-        /// list results have been truncated.  The value will be false if the request
-        /// fails.
-        /// </summary>
-        public bool IsTruncated { get; private set; }
-        /// <summary>
-        /// Indicates what to use as a marker for subsequent list requests in the event
-        /// that the results are truncated.  Present only when a delimiter is specified.
-        /// Null if the requests fails.
-        /// </summary>
-        public string NextMarker { get; private set; }
-        /// <summary>
-        /// A list of ObjectListEntry objects representing the objects in the given bucket.
-        /// Null if the request fails.
-        /// </summary>
-        public List<ObjectListEntry> Entries { get; private set; }
-        /// <summary>
-        /// A list of CommonPrefixEntry objects representing the common prefixes of the
-        /// keys that matched up to the delimiter.  Null if the request fails.
-        /// </summary>
-        public List<CommonPrefixEntry> CommonPrefixEntries { get; private set; }
+        private string _name;
+        private string _prefix;
+        private string _marker;
+        private string _delimiter;
+        private int _maxKeys;
+        private bool _isTruncated;
+        private string _nextMarker;
+        private List<ObjectListEntry> _entries;
+        private List<CommonPrefixEntry> _commonPrefixEntries;
 
-        public ObjectListResponse(WebRequest request) : base(request)
+        public string Name
+        {
+            get
+            {
+                return this._name;
+            }
+        }
+
+        public string Prefix
+        {
+            get
+            {
+                return this._prefix;
+            }
+        }
+
+        public string Marker
+        {
+            get
+            {
+                return this._marker;
+            }
+        }
+
+        public string Delimiter
+        {
+            get
+            {
+                return this._delimiter;
+            }
+        }
+
+        public int MaxKeys
+        {
+            get
+            {
+                return this._maxKeys;
+            }
+        }
+
+        public bool IsTruncated
+        {
+            get
+            {
+                return this._isTruncated;
+            }
+        }
+
+        public string NextMarker
+        {
+            get
+            {
+                return this._nextMarker;
+            }
+        }
+
+        public List<ObjectListEntry> Entries
+        {
+            get
+            {
+                return this._entries;
+            }
+        }
+
+        public List<CommonPrefixEntry> CommonPrefixEntries
+        {
+            get
+            {
+                return this._commonPrefixEntries;
+            }
+        }
+
+        public ObjectListResponse(WebRequest request)
+          : base(request)
         {
         }
 
         protected override void ReadResponse(WebResponse response, WebRequest request)
         {
             base.ReadResponse(response, request);
-
-            Entries = new List<ObjectListEntry>();
-            CommonPrefixEntries = new List<CommonPrefixEntry>();
-            string rawBucketXML = Utils.SlurpInputStreamAsString(response.GetResponseStream());
-
-            XmlDocument doc = new XmlDocument();
-            doc.LoadXml(rawBucketXML);
-            foreach (XmlNode node in doc.ChildNodes)
+            this._entries = new List<ObjectListEntry>();
+            this._commonPrefixEntries = new List<CommonPrefixEntry>();
+            string xml = Utils.slurpInputStreamAsString(response.GetResponseStream());
+            XmlDocument xmlDocument = new XmlDocument();
+            xmlDocument.LoadXml(xml);
+            foreach (XmlNode childNode1 in xmlDocument.ChildNodes)
             {
-                if (node.Name.Equals("ListBucketResult"))
+                if (childNode1.Name.Equals("ListBucketResult"))
                 {
-                    foreach (XmlNode child in node.ChildNodes)
+                    foreach (XmlNode childNode2 in childNode1.ChildNodes)
                     {
-                        switch (child.Name)
+                        switch (childNode2.Name)
                         {
                             case "Contents":
-                                Entries.Add(new ObjectListEntry(child));
-                                break;
-
+                                this._entries.Add(new ObjectListEntry(childNode2));
+                                continue;
                             case "CommonPrefixes":
-                                CommonPrefixEntries.Add(new CommonPrefixEntry(child));
-                                break;
-
+                                this._commonPrefixEntries.Add(new CommonPrefixEntry(childNode2));
+                                continue;
                             case "Name":
-                                Name = Utils.GetXmlChildText(child);
-                                break;
-
+                                this._name = Utils.getXmlChildText(childNode2);
+                                continue;
                             case "Prefix":
-                                Prefix = Utils.GetXmlChildText(child);
-                                break;
-
+                                this._prefix = Utils.getXmlChildText(childNode2);
+                                continue;
                             case "Marker":
-                                Marker = Utils.GetXmlChildText(child);
-                                break;
-
+                                this._marker = Utils.getXmlChildText(childNode2);
+                                continue;
                             case "Delimiter":
-                                Delimiter = Utils.GetXmlChildText(child);
-                                break;
-
+                                this._delimiter = Utils.getXmlChildText(childNode2);
+                                continue;
                             case "MaxKeys":
-                                MaxKeys = int.Parse(Utils.GetXmlChildText(child));
-                                break;
-
+                                this._maxKeys = int.Parse(Utils.getXmlChildText(childNode2));
+                                continue;
                             case "IsTruncated":
-                                IsTruncated = bool.Parse(Utils.GetXmlChildText(child));
-                                break;
-
+                                this._isTruncated = bool.Parse(Utils.getXmlChildText(childNode2));
+                                continue;
                             case "NextMarker":
-                                NextMarker = Utils.GetXmlChildText(child);
-                                break;
+                                this._nextMarker = Utils.getXmlChildText(childNode2);
+                                continue;
+                            default:
+                                continue;
                         }
                     }
                 }

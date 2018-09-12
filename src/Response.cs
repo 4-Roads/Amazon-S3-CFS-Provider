@@ -17,9 +17,33 @@ namespace Telligent.Extensions.AmazonS3
 {
     public class Response
     {
-        public HttpStatusCode Status { get; private set; }
-        public string XAmzId { get; private set; }
-        public string XAmzRequestId { get; private set; }
+        private HttpStatusCode _status;
+        private string _xAmzId;
+        private string _xAmzRequestId;
+
+        public HttpStatusCode Status
+        {
+            get
+            {
+                return this._status;
+            }
+        }
+
+        public string XAmzId
+        {
+            get
+            {
+                return this._xAmzId;
+            }
+        }
+
+        public string XAmzRequestId
+        {
+            get
+            {
+                return this._xAmzRequestId;
+            }
+        }
 
         public Response(WebRequest request)
         {
@@ -27,27 +51,23 @@ namespace Telligent.Extensions.AmazonS3
             {
                 using (WebResponse response = request.GetResponse())
                 {
-                    ReadResponse(response, request);
+                    this.ReadResponse(response, request);
                     response.Close();
                 }
             }
             catch (WebException ex)
             {
                 if (ex.Response != null)
-                {
-                    string msg = Utils.SlurpInputStreamAsString(ex.Response.GetResponseStream());
-                    throw new WebException(msg, ex, ex.Status, ex.Response);
-                }
-                else
-                    throw new WebException(ex.Message, ex, ex.Status, null);
+                    throw new WebException(Utils.slurpInputStreamAsString(ex.Response.GetResponseStream()), (Exception)ex, ex.Status, ex.Response);
+                throw new WebException(ex.Message, (Exception)ex, ex.Status, (WebResponse)null);
             }
         }
 
         protected virtual void ReadResponse(WebResponse response, WebRequest request)
         {
-            this.Status = ((HttpWebResponse)response).StatusCode;
-            this.XAmzId = response.Headers.Get("x-amz-id-2");
-            this.XAmzRequestId = response.Headers.Get("x-amz-request-id");
+            this._status = ((HttpWebResponse)response).StatusCode;
+            this._xAmzId = response.Headers.Get("x-amz-id-2");
+            this._xAmzRequestId = response.Headers.Get("x-amz-request-id");
         }
     }
 }

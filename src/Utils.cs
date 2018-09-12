@@ -10,6 +10,7 @@
 
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Security.Cryptography;
@@ -18,6 +19,7 @@ using System.Text.RegularExpressions;
 using System.Web;
 using System.Xml;
 using System.Collections.Specialized;
+using System.Globalization;
 
 namespace Telligent.Extensions.AmazonS3
 {
@@ -30,264 +32,184 @@ namespace Telligent.Extensions.AmazonS3
 
     internal static class Utils
     {
-        public static readonly string METADATA_PREFIX = "x-amz-meta-";
-        public static readonly string AMAZON_HEADER_PREFIX = "x-amz-";
-        public static readonly string ALTERNATIVE_DATE_HEADER = "x-amz-date";
-        public static string Host { get; set; } = "s3.amazonaws.com";
-        public static int SecurePort { get; set; } = 443;
-        public static int InsecurePort { get; set; } = 80;
+        private static string host = "s3.amazonaws.com";
+        private static int securePort = 443;
+        private static int insecurePort = 80;
+        public const string METADATA_PREFIX = "x-amz-meta-";
 
-        internal static string MakeCanonicalString(string bucket, string key, WebRequest request) => MakeCanonicalString(bucket, key, new SortedList(), request);
-
-        internal static string MakeCanonicalString(string bucket, string key, SortedList query, WebRequest request)
+        public static string Host
         {
-            SortedList headers = new SortedList();
-            foreach (string header in request.Headers)
+            get
             {
-                headers.Add(header, request.Headers[header]);
+                return Utils.host;
             }
-            if (headers["Content-Type"] == null)
+            set
             {
-                headers.Add("Content-Type", request.ContentType);
+                Utils.host = value;
             }
-            return MakeCanonicalString(request.Method, bucket, key, query, headers, null);
         }
 
-        internal static string MakeCanonicalString(string verb, string bucketName, string key, SortedList queryParams, SortedList headers, string expires)
+        public static int SecurePort
         {
-            StringBuilder buf = new StringBuilder();
-            buf.Append(verb);
-            buf.Append("\n");
-
-            SortedList interestingHeaders = new SortedList();
-            if (headers != null)
+            get
             {
-                foreach (string header in headers.Keys)
-                {
-                    string lk = header.ToLower();
-                    if (lk.Equals("content-type") ||
-                         lk.Equals("content-md5") ||
-                         lk.Equals("date") ||
-                         lk.StartsWith(AMAZON_HEADER_PREFIX))
-                    {
-                        interestingHeaders.Add(lk, headers[header]);
-                    }
-                }
+                return Utils.securePort;
             }
-            if (interestingHeaders[ALTERNATIVE_DATE_HEADER] != null)
+            set
             {
-                interestingHeaders.Add("date", "");
+                Utils.securePort = value;
             }
-
-            // if the expires is non-null, use that for the date field.  this
-            // trumps the x-amz-date behavior.
-            if (expires != null)
-            {
-                interestingHeaders.Add("date", expires);
-            }
-
-            // these headers require that we still put a new line after them,
-            // even if they don't exist.
-            {
-                string[] newlineHeaders = { "content-type", "content-md5" };
-                foreach (string header in newlineHeaders)
-                {
-                    if (interestingHeaders.IndexOfKey(header) == -1)
-                    {
-                        interestingHeaders.Add(header, "");
-                    }
-                }
-            }
-
-            // Finally, add all the interesting headers (i.e.: all that startwith x-amz- ;-))
-            foreach (string header in interestingHeaders.Keys)
-            {
-                if (header.StartsWith(AMAZON_HEADER_PREFIX))
-                {
-                    buf.Append(header).Append(":").Append((interestingHeaders[header] as string).Trim());
-                }
-                else
-                {
-                    buf.Append(interestingHeaders[header]);
-                }
-                buf.Append("\n");
-            }
-
-            // Build the path using the bucket and key
-            buf.Append("/");
-            if (bucketName != null && !bucketName.Equals(""))
-            {
-                buf.Append(bucketName);
-                buf.Append("/");
-            }
-
-            // Append the key (it may be an empty string)
-            if (key != null && key.Length != 0)
-            {
-                buf.Append(key);
-            }
-
-            // if there is an acl, logging, or torrent paramter, add them to the string.
-            if (queryParams != null)
-            {
-                if (queryParams.IndexOfKey("acl") != -1)
-                {
-                    buf.Append("?acl");
-                }
-                else if (queryParams.IndexOfKey("torrent") != -1)
-                {
-                    buf.Append("?torrent");
-                }
-                else if (queryParams.IndexOfKey("logging") != -1)
-                {
-                    buf.Append("?logging");
-                }
-            }
-
-            return buf.ToString();
         }
 
-        internal static string Encode(string awsSecretAccessKey, string canonicalString, bool urlEncode)
+        public static int InsecurePort
         {
-            Encoding ae = new UTF8Encoding();
-            HMACSHA1 signature = new HMACSHA1(ae.GetBytes(awsSecretAccessKey));
-            string b64 = Convert.ToBase64String(signature.ComputeHash(ae.GetBytes(canonicalString.ToCharArray())));
+            get
+            {
+                return Utils.insecurePort;
+            }
+            set
+            {
+                Utils.insecurePort = value;
+            }
+        }
 
+        internal static string encode(string awsSecretAccessKey, string canonicalString, bool urlEncode)
+        {
+            Encoding encoding = (Encoding)new UTF8Encoding();
+            string base64String = Convert.ToBase64String(new HMACSHA1(encoding.GetBytes(awsSecretAccessKey)).ComputeHash(encoding.GetBytes(canonicalString.ToCharArray())));
             if (urlEncode)
-            {
-                return HttpUtility.UrlEncode(b64);
-            }
-            else
-            {
-                return b64;
-            }
+                return HttpUtility.UrlEncode(base64String);
+            return base64String;
         }
 
-        internal static byte[] SlurpInputStream(Stream stream)
+        internal static byte[] slurpInputStream(Stream stream)
         {
-            using (MemoryStream ms = new MemoryStream())
+            using (MemoryStream memoryStream = new MemoryStream())
             {
-                byte[] buffer = new byte[32 * 1024];
+                byte[] buffer = new byte[32768];
                 while (true)
                 {
-                    int nRead = stream.Read(buffer, 0, buffer.Length);
-                    if (nRead <= 0)
-                    {
-                        return ms.ToArray();
-                    }
-                    ms.Write(buffer, 0, nRead);
+                    int count = stream.Read(buffer, 0, buffer.Length);
+                    if (count > 0)
+                        memoryStream.Write(buffer, 0, count);
+                    else
+                        break;
                 }
+                return memoryStream.ToArray();
             }
         }
 
-        internal static string SlurpInputStreamAsString(Stream stream)
+        internal static string slurpInputStreamAsString(Stream stream)
         {
-            UTF8Encoding encoding = new UTF8Encoding();
-            return encoding.GetString(SlurpInputStream(stream));
+            return new UTF8Encoding().GetString(Utils.slurpInputStream(stream));
         }
 
-        internal static string GetXmlChildText(XmlNode data)
+        internal static string getXmlChildText(XmlNode data)
         {
-            StringBuilder builder = new StringBuilder();
-            foreach (XmlNode node in data.ChildNodes)
+            StringBuilder stringBuilder = new StringBuilder();
+            foreach (XmlNode childNode in data.ChildNodes)
             {
-                if (node.NodeType == XmlNodeType.Text ||
-                    node.NodeType == XmlNodeType.CDATA)
-                {
-                    builder.Append(node.Value);
-                }
+                if (childNode.NodeType == XmlNodeType.Text || childNode.NodeType == XmlNodeType.CDATA)
+                    stringBuilder.Append(childNode.Value);
             }
-            return builder.ToString();
+            return stringBuilder.ToString();
         }
 
-        internal static DateTime ParseDate(string dateStr) => DateTime.Parse(dateStr);
-
-        public static string GetHttpDate() =>
-            // Setting the Culture will ensure we get a proper HTTP Date.
-            System.DateTime.UtcNow.ToString("ddd, dd MMM yyyy HH:mm:ss ", System.Globalization.CultureInfo.InvariantCulture) + "GMT";
-
-        internal static long CurrentTimeMillis() => (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds;
-
-        /// <summary>
-        /// Calculates the endpoint based on the calling format.
-        /// </summary>
-        internal static string BuildUrlBase(string server, int port, string bucket, CallingFormat format)
+        internal static DateTime parseDate(string dateStr)
         {
-            StringBuilder endpoint = new StringBuilder();
+            return DateTime.Parse(dateStr);
+        }
 
+        public static string getHttpDate()
+        {
+            return DateTime.UtcNow.ToString("ddd, dd MMM yyyy HH:mm:ss ", CultureInfo.InvariantCulture) + "GMT";
+        }
+
+        internal static long currentTimeMillis()
+        {
+            return (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds;
+        }
+
+        internal static string buildUrlBase(bool isSecure, string server, int port, string bucket, CallingFormat format)
+        {
+            StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.Append(isSecure ? "https://" : "http://");
             if (format == CallingFormat.REGULAR)
             {
-                endpoint.Append(server);
-                endpoint.Append(":");
-                endpoint.Append(port);
+                stringBuilder.Append(server);
+                stringBuilder.Append(":");
+                stringBuilder.Append(port);
                 if (bucket != null && !bucket.Equals(""))
                 {
-                    endpoint.Append("/");
-                    endpoint.Append(bucket);
+                    stringBuilder.Append("/");
+                    stringBuilder.Append(bucket);
                 }
             }
             else if (format == CallingFormat.SUBDOMAIN)
             {
                 if (bucket.Length != 0)
                 {
-                    endpoint.Append(bucket);
-                    endpoint.Append(".");
+                    stringBuilder.Append(bucket);
+                    stringBuilder.Append(".");
                 }
-                endpoint.Append(server);
-                endpoint.Append(":");
-                endpoint.Append(port);
+                stringBuilder.Append(server);
+                stringBuilder.Append(":");
+                stringBuilder.Append(port);
             }
             else if (format == CallingFormat.VANITY)
             {
-                endpoint.Append(bucket);
-                endpoint.Append(":");
-                endpoint.Append(port);
+                stringBuilder.Append(bucket);
+                stringBuilder.Append(":");
+                stringBuilder.Append(port);
             }
-            endpoint.Append("/");
-            return endpoint.ToString();
+            stringBuilder.Append("/");
+            return stringBuilder.ToString();
         }
 
-        internal static SortedList QueryForListOptions(string prefix, string marker, int maxKeys) => QueryForListOptions(prefix, marker, maxKeys, null);
-
-        internal static SortedList QueryForListOptions(string prefix, string marker, int maxKeys, string delimiter)
+        internal static SortedList<string, string> queryForListOptions(string prefix, string marker, int maxKeys)
         {
-            SortedList queryStrings = new SortedList();
-            if (prefix != null) queryStrings.Add("prefix", HttpUtility.UrlEncode(prefix)); ;
-            if (marker != null) queryStrings.Add("marker", HttpUtility.UrlEncode(marker));
-            if (maxKeys != 0) queryStrings.Add("max-keys", "" + maxKeys);
-            if (delimiter != null) queryStrings.Add("delimiter", HttpUtility.UrlEncode(delimiter));
-            return queryStrings;
+            return Utils.queryForListOptions(prefix, marker, maxKeys, (string)null);
         }
 
-        internal static string ConvertQueryListToQueryString(SortedList query)
+        internal static SortedList<string, string> queryForListOptions(string prefix, string marker, int maxKeys, string delimiter)
         {
-            StringBuilder queryString = new StringBuilder();
-            bool firstParameter = true;
+            SortedList<string, string> sortedList = new SortedList<string, string>();
+            if (prefix != null)
+                sortedList.Add(nameof(prefix), prefix);
+            if (marker != null)
+                sortedList.Add(nameof(marker), marker);
+            if (maxKeys != 0)
+                sortedList.Add("max-keys", string.Concat((object)maxKeys));
+            if (delimiter != null)
+                sortedList.Add(nameof(delimiter), delimiter);
+            return sortedList;
+        }
+
+        internal static string convertQueryListToQueryString(SortedList<string, string> query)
+        {
+            StringBuilder stringBuilder = new StringBuilder();
+            bool flag = true;
             if (query != null)
             {
-                foreach (string key in query.Keys)
+                foreach (string key in (IEnumerable<string>)query.Keys)
                 {
-                    string argument = key;
-                    if (firstParameter)
+                    if (flag)
                     {
-                        firstParameter = false;
-                        queryString.Append("?");
+                        flag = false;
+                        stringBuilder.Append("?");
                     }
                     else
+                        stringBuilder.Append("&");
+                    stringBuilder.Append(key);
+                    string str = query[key];
+                    if (str != null && str.Length != 0)
                     {
-                        queryString.Append("&");
-                    }
-
-                    queryString.Append(key);
-                    string value = (string)query[key];
-                    if (value != null && value.Length != 0)
-                    {
-                        queryString.Append("=");
-                        queryString.Append(value);
+                        stringBuilder.Append("=");
+                        stringBuilder.Append(HttpUtility.UrlEncode(str));
                     }
                 }
             }
-            return queryString.ToString();
+            return stringBuilder.ToString();
         }
     }
 }

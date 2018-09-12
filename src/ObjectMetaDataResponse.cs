@@ -4,40 +4,65 @@ using System.Text;
 using System.Web;
 using System.Collections;
 using System.Net;
+using System.Globalization;
 
 namespace Telligent.Extensions.AmazonS3
 {
     public class ObjectMetaDataResponse : Response
     {
-        public SortedList MetaData { get; private set; }
+        private SortedList _metaData;
+        private DateTime _lastModified;
+        private string _contentType;
+        private long _contentLength;
 
-        public DateTime LastModified { get; private set; }
+        public SortedList MetaData
+        {
+            get
+            {
+                return this._metaData;
+            }
+        }
 
-        public string ContentType { get; private set; }
+        public DateTime LastModified
+        {
+            get
+            {
+                return this._lastModified;
+            }
+        }
 
-        public long ContentLength { get; private set; }
+        public string ContentType
+        {
+            get
+            {
+                return this._contentType;
+            }
+        }
 
+        public long ContentLength
+        {
+            get
+            {
+                return this._contentLength;
+            }
+        }
 
-        public ObjectMetaDataResponse(WebRequest request) : base(request)
+        public ObjectMetaDataResponse(WebRequest request)
+          : base(request)
         {
         }
 
         protected override void ReadResponse(WebResponse response, WebRequest request)
         {
             base.ReadResponse(response, request);
-
-            LastModified = DateTime.Parse(response.Headers["Last-Modified"], System.Globalization.CultureInfo.InvariantCulture.DateTimeFormat);
-            ContentType = response.ContentType;
-            ContentLength = response.ContentLength;
-
-            MetaData = new SortedList();
-            foreach (string hKey in response.Headers.Keys)
+            this._lastModified = DateTime.Parse(response.Headers["Last-Modified"], CultureInfo.InvariantCulture.DateTimeFormat);
+            this._contentType = response.ContentType;
+            this._contentLength = response.ContentLength;
+            this._metaData = new SortedList();
+            foreach (string key in response.Headers.Keys)
             {
-                if (hKey == null) continue;
-                if (hKey.StartsWith(Utils.METADATA_PREFIX))
-                {
-                    MetaData[hKey.Substring(Utils.METADATA_PREFIX.Length)] = response.Headers[hKey];
-                }
+                if (key != null && key.StartsWith("x-amz-meta-"))
+                    this._metaData[(object)key.Substring("x-amz-meta-".Length)] = (object)response.Headers[key];
             }
         }
     }

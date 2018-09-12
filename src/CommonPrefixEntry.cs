@@ -18,24 +18,31 @@ namespace Telligent.Extensions.AmazonS3
 {
     public class CommonPrefixEntry
     {
-        /// <summary>
-        /// The prefix common to the delimited keys it represents.
-        /// </summary>
-        public string Prefix { set; get; }
+        private string prefix;
+
+        public string Prefix
+        {
+            set
+            {
+                this.prefix = value;
+            }
+            get
+            {
+                return this.prefix;
+            }
+        }
 
         public CommonPrefixEntry(string prefix)
         {
-            this.Prefix = prefix;
+            this.prefix = prefix;
         }
 
         public CommonPrefixEntry(XmlNode node)
         {
-            foreach (XmlNode child in node.ChildNodes)
+            foreach (XmlNode childNode in node.ChildNodes)
             {
-                if (child.Name.Equals("Prefix"))
-                {
-                    Prefix = Utils.GetXmlChildText(child);
-                }
+                if (childNode.Name.Equals(nameof(Prefix)))
+                    this.prefix = Utils.getXmlChildText(childNode);
             }
         }
     }

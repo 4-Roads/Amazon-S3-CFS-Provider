@@ -18,33 +18,51 @@ namespace Telligent.Extensions.AmazonS3
 {
     public class ObjectListEntry
     {
-        public string Key { get; }
-        public DateTime LastModified { get; }
-
+        private string _key;
+        private DateTime _lastModified;
         private long _contentLength;
-        public long ContentLength {
-            get {
-                return _contentLength;
+
+        public string Key
+        {
+            get
+            {
+                return this._key;
+            }
+        }
+
+        public DateTime LastModified
+        {
+            get
+            {
+                return this._lastModified;
+            }
+        }
+
+        public long ContentLength
+        {
+            get
+            {
+                return this._contentLength;
             }
         }
 
         public ObjectListEntry(XmlNode node)
         {
-            foreach (XmlNode child in node.ChildNodes)
+            foreach (XmlNode childNode in node.ChildNodes)
             {
-                switch (child.Name)
+                switch (childNode.Name)
                 {
-                    case "Key":
-                        Key = Utils.GetXmlChildText(child);
-                        break;
-
-                    case "LastModified":
-                        LastModified = Utils.ParseDate(Utils.GetXmlChildText(child));
-                        break;
-
+                    case nameof(Key):
+                        this._key = Utils.getXmlChildText(childNode);
+                        continue;
+                    case nameof(LastModified):
+                        this._lastModified = Utils.parseDate(Utils.getXmlChildText(childNode));
+                        continue;
                     case "Size":
-                        _contentLength = long.Parse(Utils.GetXmlChildText(child));
-                        break;
+                        this._contentLength = long.Parse(Utils.getXmlChildText(childNode));
+                        continue;
+                    default:
+                        continue;
                 }
             }
         }
